@@ -20,29 +20,33 @@
 # This recipe should be placed in the run_list of the node that
 # runs the network server or network controller server.
 
-platform_options = node["openstack"]["network"]["platform"]
+if node["openstack"]["compute"]["network"]["service_type"] == "quantum"
+    
+  platform_options = node["openstack"]["network"]["platform"]
 
-service "quantum-server" do
-  service_name platform_options["quantum_server_service"]
-  supports :status => true, :restart => true
+  service "quantum-server" do
+    service_name platform_options["quantum_server_service"]
+    supports :status => true, :restart => true
 
-  action :nothing
-end
+    action :nothing
+  end
 
-platform_options["quantum_lb_packages"].each do |pkg|
-   package pkg do
-     action :install
-   end
-end
+  platform_options["quantum_lb_packages"].each do |pkg|
+     package pkg do
+       action :install
+     end
+  end
 
-directory node["openstack"]["network"]["lbaas_config_path"] do
-  action :create
-  owner node["openstack"]["network"]["platform"]["user"]
-  group node["openstack"]["network"]["platform"]["group"]
-  recursive true
-end
+  directory node["openstack"]["network"]["lbaas_config_path"] do
+    action :create
+    owner node["openstack"]["network"]["platform"]["user"]
+    group node["openstack"]["network"]["platform"]["group"]
+    recursive true
+  end
 
-template "#{node["openstack"]["network"]["lbaas_config_path"]}/lbaas_agent.ini" do
-  source "lbaas_agent.ini.erb"
-  notifies :restart, "service[quantum-server]", :immediately
+  template "#{node["openstack"]["network"]["lbaas_config_path"]}/lbaas_agent.ini" do
+    source "lbaas_agent.ini.erb"
+    notifies :restart, "service[quantum-server]", :immediately
+  end
+
 end

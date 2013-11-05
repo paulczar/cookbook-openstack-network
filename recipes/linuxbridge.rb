@@ -17,19 +17,23 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-network::common"
+if node["openstack"]["compute"]["network"]["service_type"] == "quantum"
 
-platform_options = node["openstack"]["network"]["platform"]
+  include_recipe "openstack-network::common"
 
-platform_options["quantum_linuxbridge_agent_packages"].each do |pkg|
-  package pkg do
-    options platform_options["package_overrides"]
-    action :install
+  platform_options = node["openstack"]["network"]["platform"]
+
+  platform_options["quantum_linuxbridge_agent_packages"].each do |pkg|
+    package pkg do
+      options platform_options["package_overrides"]
+      action :install
+    end
   end
-end
 
-service "quantum-plugin-linuxbridge-agent" do
-  service_name platform_options["quantum_linuxbridge_agent_service"]
-  supports :status => true, :restart => true
-  action :enable
+  service "quantum-plugin-linuxbridge-agent" do
+    service_name platform_options["quantum_linuxbridge_agent_service"]
+    supports :status => true, :restart => true
+    action :enable
+  end
+
 end

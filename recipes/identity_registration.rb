@@ -18,71 +18,75 @@
 # limitations under the License.
 #
 
-require "uri"
+if node["openstack"]["compute"]["network"]["service_type"] == "quantum"
 
-class ::Chef::Recipe
-  include ::Openstack
-end
+  require "uri"
 
-identity_admin_endpoint = endpoint "identity-admin"
+  class ::Chef::Recipe
+    include ::Openstack
+  end
 
-bootstrap_token = secret "secrets", "openstack_identity_bootstrap_token"
-auth_uri = ::URI.decode identity_admin_endpoint.to_s
+  identity_admin_endpoint = endpoint "identity-admin"
 
-api_endpoint = endpoint "network-api"
+  bootstrap_token = secret "secrets", "openstack_identity_bootstrap_token"
+  auth_uri = ::URI.decode identity_admin_endpoint.to_s
 
-service_pass = service_password "openstack-network"
-service_tenant_name = node["openstack"]["network"]["service_tenant_name"]
-service_user = node["openstack"]["network"]["service_user"]
-service_role = node["openstack"]["network"]["service_role"]
+  api_endpoint = endpoint "network-api"
 
-openstack_identity_register "Register Network API Service" do
-  auth_uri auth_uri
-  bootstrap_token bootstrap_token
-  service_name node["openstack"]["network"]["service_name"]
-  service_type node["openstack"]["network"]["service_type"]
-  service_description "OpenStack Network Service"
+  service_pass = service_password "openstack-network"
+  service_tenant_name = node["openstack"]["network"]["service_tenant_name"]
+  service_user = node["openstack"]["network"]["service_user"]
+  service_role = node["openstack"]["network"]["service_role"]
 
-  action :create_service
-end
+  openstack_identity_register "Register Network API Service" do
+    auth_uri auth_uri
+    bootstrap_token bootstrap_token
+    service_name node["openstack"]["network"]["service_name"]
+    service_type node["openstack"]["network"]["service_type"]
+    service_description "OpenStack Network Service"
 
-openstack_identity_register "Register Network Endpoint" do
-  auth_uri auth_uri
-  bootstrap_token bootstrap_token
-  service_type node["openstack"]["network"]["service_type"]
-  endpoint_region node["openstack"]["network"]["region"]
-  endpoint_adminurl api_endpoint.to_s
-  endpoint_internalurl api_endpoint.to_s
-  endpoint_publicurl api_endpoint.to_s
+    action :create_service
+  end
 
-  action :create_endpoint
-end
+  openstack_identity_register "Register Network Endpoint" do
+    auth_uri auth_uri
+    bootstrap_token bootstrap_token
+    service_type node["openstack"]["network"]["service_type"]
+    endpoint_region node["openstack"]["network"]["region"]
+    endpoint_adminurl api_endpoint.to_s
+    endpoint_internalurl api_endpoint.to_s
+    endpoint_publicurl api_endpoint.to_s
 
-openstack_identity_register "Register Service Tenant" do
-  auth_uri auth_uri
-  bootstrap_token bootstrap_token
-  tenant_name service_tenant_name
-  tenant_description "Service Tenant"
+    action :create_endpoint
+  end
 
-  action :create_tenant
-end
+  openstack_identity_register "Register Service Tenant" do
+    auth_uri auth_uri
+    bootstrap_token bootstrap_token
+    tenant_name service_tenant_name
+    tenant_description "Service Tenant"
 
-openstack_identity_register "Register #{service_user} User" do
-  auth_uri auth_uri
-  bootstrap_token bootstrap_token
-  tenant_name service_tenant_name
-  user_name service_user
-  user_pass service_pass
+    action :create_tenant
+  end
 
-  action :create_user
-end
+  openstack_identity_register "Register #{service_user} User" do
+    auth_uri auth_uri
+    bootstrap_token bootstrap_token
+    tenant_name service_tenant_name
+    user_name service_user
+    user_pass service_pass
 
-openstack_identity_register "Grant '#{service_role}' Role to #{service_user} User for #{service_tenant_name} Tenant" do
-  auth_uri auth_uri
-  bootstrap_token bootstrap_token
-  tenant_name service_tenant_name
-  user_name service_user
-  role_name service_role
+    action :create_user
+  end
 
-  action :grant_role
+  openstack_identity_register "Grant '#{service_role}' Role to #{service_user} User for #{service_tenant_name} Tenant" do
+    auth_uri auth_uri
+    bootstrap_token bootstrap_token
+    tenant_name service_tenant_name
+    user_name service_user
+    role_name service_role
+
+    action :grant_role
+  end
+
 end

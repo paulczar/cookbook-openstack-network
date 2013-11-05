@@ -17,39 +17,43 @@
 # limitations under the License.
 #
 
-include_recipe "openstack-network::common"
+if node["openstack"]["compute"]["network"]["service_type"] == "quantum"
 
-platform_options = node["openstack"]["network"]["platform"]
-driver_name = node["openstack"]["network"]["interface_driver"].split('.').last.downcase
-main_plugin = node["openstack"]["network"]["interface_driver_map"][driver_name]
+  include_recipe "openstack-network::common"
 
-identity_endpoint = endpoint "identity-api"
-service_pass = service_password "openstack-network"
-metadata_secret = secret "secrets", node["openstack"]["network"]["metadata"]["secret_name"]
+  platform_options = node["openstack"]["network"]["platform"]
+  driver_name = node["openstack"]["network"]["interface_driver"].split('.').last.downcase
+  main_plugin = node["openstack"]["network"]["interface_driver_map"][driver_name]
 
-template "/etc/quantum/metadata_agent.ini" do
-  source "metadata_agent.ini.erb"
-  owner node["openstack"]["network"]["platform"]["user"]
-  group node["openstack"]["network"]["platform"]["group"]
-  mode   00644
-  variables(
-    :identity_endpoint => identity_endpoint,
-    :metadata_secret => metadata_secret,
-    :service_pass => service_pass
-  )
-  notifies :restart, "service[quantum-metadata-agent]", :immediately
-  action :create
-end
+  identity_endpoint = endpoint "identity-api"
+  service_pass = service_password "openstack-network"
+  metadata_secret = secret "secrets", node["openstack"]["network"]["metadata"]["secret_name"]
 
-platform_options["quantum_metadata_agent_packages"].each do |pkg|
-  package pkg do
-    action :install
-    options platform_options["package_overrides"]
+  template "/etc/quantum/metadata_agent.ini" do
+    source "metadata_agent.ini.erb"
+    owner node["openstack"]["network"]["platform"]["user"]
+    group node["openstack"]["network"]["platform"]["group"]
+    mode   00644
+    variables(
+      :identity_endpoint => identity_endpoint,
+      :metadata_secret => metadata_secret,
+      :service_pass => service_pass
+    )
+    notifies :restart, "service[quantum-metadata-agent]", :immediately
+    action :create
   end
-end
 
-service "quantum-metadata-agent" do
-  service_name platform_options["quantum_metadata_agent_service"]
-  supports :status => true, :restart => true
-  action :enable
+  platform_options["quantum_metadata_agent_packages"].each do |pkg|
+    package pkg do
+      action :install
+      options platform_options["package_overrides"]
+    end
+  end
+
+  service "quantum-metadata-agent" do
+    service_name platform_options["quantum_metadata_agent_service"]
+    supports :status => true, :restart => true
+    action :enable
+  end
+
 end
